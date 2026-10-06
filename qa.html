@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q&A · 红石社</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @font-face{font-family:'Anthropic Sans Web Text';src:url('fonts/AnthropicSansWebText.ttf') format('truetype');font-weight:normal;font-style:normal;font-display:swap}
+        @font-face{font-family:'Anthropic Serif Web Text';src:url('fonts/AnthropicSerifWebText.ttf') format('truetype');font-weight:normal;font-style:normal;font-display:swap}
+        @font-face{font-family:'Anthropic Mono Variable';src:url('fonts/AnthropicMonoVariable.ttf') format('truetype');font-weight:normal;font-style:normal;font-display:swap}
+        :root {
+            --bg: #181715;
+            --surface: #252320;
+            --text: #faf9f5;
+            --text2: #a09d96;
+            --text3: #8e8b82;
+            --accent: #cc785c;
+            --accent2: #a9583e;
+            --border: rgba(230, 223, 216, 0.153);
+            --radius: 14px;
+            --font: 'Anthropic Sans Web Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+            --font-display: 'Anthropic Serif Web Text', Georgia, 'Noto Serif SC', 'Songti SC', 'SimSun', serif;
+            --ease: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background:
+                radial-gradient(900px 520px at 4% -10%, rgba(204, 120, 92, .13), transparent 68%),
+                radial-gradient(760px 520px at 102% 108%, rgba(204, 120, 92, .07), transparent 66%),
+                linear-gradient(135deg, #1a1917 0%, #181715 54%, #141413 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            font-family: var(--font);
+            color: var(--text);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .header h1 {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: var(--text2);
+            font-size: 0.95rem;
+        }
+
+        .submit-card {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2.5rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: box-shadow 0.2s var(--ease);
+        }
+
+        .submit-card:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+
+        .submit-card h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text2);
+            margin-bottom: 0.4rem;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-family: var(--font);
+            font-size: 0.95rem;
+            color: var(--text);
+            background: var(--bg);
+            outline: none;
+            transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(204,120,92,0.1);
+        }
+
+        .form-group textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 0.8rem;
+            background: var(--accent);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s var(--ease), transform 0.15s var(--ease);
+        }
+
+        .submit-btn:hover {
+            background: var(--accent2);
+        }
+
+        .submit-btn:active {
+            transform: scale(0.98);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .qa-section h2 {
+            font-family: var(--font-display);
+            font-weight: 400;
+            letter-spacing: -0.02em;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+        }
+
+        .qa-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .qa-card {
+            background: var(--surface);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            cursor: pointer;
+            transition: box-shadow 0.2s var(--ease), border-color 0.2s var(--ease);
+        }
+
+        .qa-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .qa-card-header {
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .qa-card-header .qa-icon {
+            color: var(--accent);
+            font-size: 1.1rem;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .qa-card-header .qa-question {
+            font-weight: 500;
+            font-size: 0.95rem;
+            color: var(--text);
+            flex: 1;
+            line-height: 1.5;
+        }
+
+        .qa-card-header .qa-arrow {
+            color: var(--text3);
+            font-size: 0.9rem;
+            transition: transform 0.3s var(--ease);
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .qa-card.open .qa-arrow {
+            transform: rotate(180deg);
+            color: var(--accent);
+        }
+
+        .qa-card-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.35s var(--ease), padding 0.35s var(--ease);
+            padding: 0 1.25rem;
+        }
+
+        .qa-card.open .qa-card-body {
+            max-height: 600px;
+            padding: 0 1.25rem 1rem 1.25rem;
+        }
+
+        .qa-card-body-inner {
+            color: var(--text2);
+            font-size: 0.9rem;
+            line-height: 1.7;
+            padding: 0.75rem 1rem;
+            background: var(--bg);
+            border-radius: 8px;
+        }
+
+        .qa-card-body-inner .answer-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text3);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.4rem;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--text);
+            color: white;
+            padding: 0.7rem 1.5rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            z-index: 999;
+            animation: slideUp 0.3s var(--ease);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 3rem;
+            color: var(--text2);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 1.5rem 1rem; }
+            .header h1 { font-size: 1.6rem; }
+            .form-row { flex-direction: column; gap: 0; }
+            .submit-card { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>有问题？来问吧</h1>
+        <p>提出你的疑问，或分享你知道的答案，帮助社团的新朋友</p>
+    </div>
+
+    <div class="submit-card">
+        <h2>写下来</h2>
+        <div class="form-group">
+            <label>你的问题</label>
+            <input type="text" id="questionInput" placeholder="比如：红石社什么时候招新？">
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>分类</label>
+                <input type="text" id="categoryInput" placeholder="招新、活动、技术...">
+            </div>
+            <div class="form-group">
+                <label>你的名字（选填）</label>
+                <input type="text" id="nameInput" placeholder="匿名也可以">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>你的回答（选填，帮助别人）</label>
+            <textarea id="answerInput" placeholder="如果你知道答案，请写在这里帮助新朋友..."></textarea>
+        </div>
+        <button class="submit-btn" id="submitBtn">提交</button>
+    </div>
+
+    <div class="qa-section">
+        <h2>大家问过的</h2>
+        <div class="qa-list" id="qaList">
+            <p style="color:var(--text3);text-align:center;padding:2rem;">加载中...</p>
+        </div>
+    </div>
+
+    <a href="/" class="back-link">← 返回官网</a>
+</div>
+
+<script>
+(function() {
+    var SUPABASE_URL = 'https://pdbfinlvocsggkuslkqv.supabase.co';
+    var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkYmZpbmx2b2NzZ2drdXNsa3F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3Mzg0NzcsImV4cCI6MjA5MDMxNDQ3N30.q8Dpw_NjNDHEFMipdBEzzpE73yZcg_xuc25yslQFCu4';
+    var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    function showToast(msg) {
+        var t = document.createElement('div');
+        t.className = 'toast';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(function() { t.remove(); }, 3000);
+    }
+
+    async function loadApprovedQA() {
+        var list = document.getElementById('qaList');
+        try {
+            var res = await supabase.from('club_qa').select('*').eq('approved', true).order('sort_order', { ascending: true });
+            if (res.error) throw res.error;
+            list.innerHTML = '';
+            if (!res.data || res.data.length === 0) {
+                list.innerHTML = '<p style="color:var(--text3);text-align:center;padding:2rem;">还没有人提问，来做第一个吧 :)</p>';
+                return;
+            }
+            res.data.forEach(function(item) {
+                var card = document.createElement('div');
+                card.className = 'qa-card';
+                card.innerHTML = 
+                    '<div class="qa-card-header">' +
+                        '<span class="qa-icon"><i class="fas fa-question-circle"></i></span>' +
+                        '<span class="qa-question">' + (item.question || '') + '</span>' +
+                        '<span class="qa-arrow"><i class="fas fa-chevron-down"></i></span>' +
+                    '</div>' +
+                    '<div class="qa-card-body">' +
+                        '<div class="qa-card-body-inner">' +
+                            '<div class="answer-label">回答</div>' +
+                            (item.answer || '暂时还没有回答').replace(/\n/g, '<br>') +
+                        '</div>' +
+                    '</div>';
+                card.addEventListener('click', function() {
+                    card.classList.toggle('open');
+                });
+                list.appendChild(card);
+            });
+        } catch(e) {
+            list.innerHTML = '<p style="color:var(--text3);text-align:center;padding:2rem;">加载失败，请刷新</p>';
+        }
+    }
+
+    async function submitQuestion() {
+        var question = document.getElementById('questionInput').value.trim();
+        var answer = document.getElementById('answerInput').value.trim();
+        if (!question) {
+            showToast('至少写个问题吧 :)');
+            return;
+        }
+
+        var btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.textContent = '提交中...';
+
+        try {
+            var res = await supabase.from('club_qa').insert({
+                question: question,
+                category: document.getElementById('categoryInput').value.trim() || '常见问题',
+                answer: answer,
+                approved: false,
+                sort_order: 0,
+                created_at: new Date().toISOString()
+            });
+            if (res.error) throw res.error;
+            showToast('收到啦，审核通过后就会显示');
+            document.getElementById('questionInput').value = '';
+            document.getElementById('categoryInput').value = '';
+            document.getElementById('nameInput').value = '';
+            document.getElementById('answerInput').value = '';
+        } catch(e) {
+            showToast('提交失败，等一下再试试');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '提交';
+        }
+    }
+
+    document.getElementById('submitBtn').addEventListener('click', submitQuestion);
+    loadApprovedQA();
+})();
+</script>
+</body>
+</html>
