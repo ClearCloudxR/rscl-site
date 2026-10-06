@@ -1,0 +1,2034 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>红石社  Redstone Club</title>
+    <link rel="icon" type="image/png" href="https://p.qlogo.cn/gh/498305465/498305465/640">
+
+    <!-- 预加载二维码图片 -->
+    <link rel="preload" as="image" href="images/redstone/benbu.jpg">
+    <link rel="preload" as="image" href="images/redstone/haicang.jpg">
+    <link rel="preload" as="image" href="images/redstone/lianmeng.jpg">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+    </script>
+    <style>
+        /* 导入 Mojangles 字体（仅含英文和数字） */
+        @font-face {
+            font-family: 'Mojangles';
+            src: url('fonts/mojangles.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        :root {
+            --bg: #181715;
+            --surface: #252320;
+            --card: rgba(37, 35, 32, 0.82);
+            --text: #faf9f5;
+            --text2: #a09d96;
+            --text3: #8e8b82;
+            --accent: #cc785c;
+            --accent2: #a9583e;
+            --purple: #e8a55a;
+            --red: #c64545;
+            --pink: #2a2420;
+            --pink2: #2a2420;
+            --pink3: #2e2622;
+            --border: rgba(230, 223, 216, 0.153);
+            --border-glow: rgba(204, 120, 92, 0.22);
+            --shadow: 0 14px 40px rgba(0, 0, 0, 0.08);
+            --radius: 18px;
+            --mono: 'Anthropic Mono Variable', ui-monospace, 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, monospace;
+            --font: 'Anthropic Sans Web Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', 'Source Han Sans SC', sans-serif;
+            --font-display: 'Anthropic Serif Web Text', Georgia, 'Noto Serif SC', 'Songti SC', 'SimSun', serif;
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-soft: cubic-bezier(.22, 1, .36, 1);
+            --ease-spring: cubic-bezier(.16, 1, .3, 1);
+            --sidebar-width: 252px;
+            --sidebar-collapsed-width: 68px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background:
+                radial-gradient(900px 520px at 4% -10%, rgba(204, 120, 92, .13), transparent 68%),
+                radial-gradient(760px 520px at 102% 108%, rgba(204, 120, 92, .07), transparent 66%),
+                linear-gradient(135deg, #1a1917 0%, #181715 54%, #141413 100%);
+            font-family: var(--font);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(204, 120, 92, 0.045), transparent 25%),
+                radial-gradient(circle at 75% 65%, rgba(42, 36, 32, 0.09), transparent 27%);
+            animation: backgroundDrift 24s ease-in-out infinite alternate;
+        }
+
+        @keyframes backgroundDrift {
+            0% {
+                transform: translate3d(-1%, 0, 0) scale(1);
+            }
+            50% {
+                transform: translate3d(2%, -1%, 0) scale(1.025);
+            }
+            100% {
+                transform: translate3d(-1%, 2%, 0) scale(1.01);
+            }
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.22);
+            backdrop-filter: blur(7px);
+            z-index: 25;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .4s ease, visibility .4s ease;
+        }
+        .sidebar-overlay.active {
+            display: block;
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .sidebar {
+            width: var(--sidebar-width);
+            flex-shrink: 0;
+            background: rgba(37, 35, 32, 0.78);
+            border-right: 1px solid var(--border);
+            box-shadow: 8px 0 34px rgba(230, 223, 216, 0.0595);
+            backdrop-filter: blur(24px) saturate(150%);
+            -webkit-backdrop-filter: blur(24px) saturate(150%);
+            display: flex;
+            flex-direction: column;
+            transition: width .62s var(--ease-soft), box-shadow .55s ease, background .45s ease;
+            z-index: 30;
+            overflow: hidden;
+        }
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+        }
+
+        .sidebar-header {
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 0 16px;
+            border-bottom: 1px solid rgba(230, 223, 216, 0.119);
+            flex-shrink: 0;
+            overflow: hidden;
+            min-width: var(--sidebar-collapsed-width);
+            transition: transform .62s var(--ease-soft), opacity .4s ease;
+        }
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1rem;
+            white-space: nowrap;
+            color: var(--text);
+            letter-spacing: -.02em;
+            transition: opacity .25s var(--ease-out-expo);
+        }
+        .sidebar.collapsed .sidebar-logo {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .sidebar.collapsed .sidebar-header {
+            justify-content: center;
+            padding: 0;
+        }
+
+        .logo-badge {
+            width: 30px;
+            height: 30px;
+            border-radius: 9px;
+            box-shadow: 0 7px 18px rgba(204, 120, 92, 0.22);
+            flex-shrink: 0;
+            overflow: hidden;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .logo-badge img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(204, 120, 92, 0.16) transparent;
+        }
+        .sidebar-nav::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar-nav::-webkit-scrollbar-thumb {
+            background: rgba(204, 120, 92, 0.16);
+            border-radius: 999px;
+        }
+
+        .nav-item {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 14px;
+            border-radius: 12px;
+            border: 1px solid transparent;
+            color: #a09d96;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: color .28s ease, background .4s var(--ease-soft), transform .42s var(--ease-soft), box-shadow .42s ease;
+            will-change: transform;
+            opacity: 0;
+        }
+        .sidebar.collapsed .nav-item {
+            justify-content: center;
+            padding: 10px;
+            gap: 0;
+            opacity: 1;
+        }
+        .nav-item:hover {
+            color: #f0eee6;
+            background: rgba(204, 120, 92, 0.045);
+            transform: translateX(2px);
+        }
+        .nav-item.active {
+            color: var(--accent);
+            background: linear-gradient(135deg, rgba(204, 120, 92, 0.105), rgba(99, 119, 220, .045));
+            border-color: rgba(204, 120, 92, 0.12);
+            box-shadow: inset 3px 0 0 #cc785c, 0 7px 20px rgba(204, 120, 92, 0.055);
+            font-weight: 600;
+        }
+        .nav-item .nav-icon {
+            width: 21px;
+            height: 21px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: currentColor;
+        }
+        .nav-svg {
+            width: 19px;
+            height: 19px;
+            display: block;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.65;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: .9;
+            transition: transform .35s var(--ease-out-expo), stroke-width .25s ease, opacity .25s ease;
+        }
+        .nav-item:hover .nav-svg {
+            transform: translateY(-1px) scale(1.05);
+            opacity: 1;
+        }
+        .nav-item.active .nav-svg {
+            stroke-width: 1.85;
+            opacity: 1;
+        }
+        .sidebar.collapsed .nav-svg {
+            width: 20px;
+            height: 20px;
+        }
+        .nav-label {
+            transition: opacity .25s var(--ease-out-expo), transform .35s var(--ease-soft);
+        }
+        .sidebar.collapsed .nav-label {
+            opacity: 0;
+            pointer-events: none;
+            width: 0;
+            overflow: hidden;
+            transform: none;
+        }
+
+        .nav-item.slide-in {
+            animation: sidebarNavIn 0.5s var(--ease-spring) forwards;
+        }
+        @keyframes sidebarNavIn {
+            0% {
+                opacity: 0;
+                transform: translate3d(-30px, 0, 0);
+            }
+            100% {
+                opacity: 1;
+                transform: translate3d(0, 0, 0);
+            }
+        }
+
+        .sidebar-footer {
+            padding: 14px 16px;
+            border-top: 1px solid rgba(230, 223, 216, 0.119);
+            flex-shrink: 0;
+            font-size: 0.7rem;
+            color: #8e8b82;
+            white-space: nowrap;
+            overflow: hidden;
+            transition: opacity .25s var(--ease-out-expo), transform .35s var(--ease-soft);
+        }
+        .sidebar.collapsed .sidebar-footer {
+            opacity: 0;
+            transform: translateX(-8px);
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            z-index: 1;
+            overflow: hidden;
+            transition: margin-left .68s var(--ease-soft), width .68s var(--ease-soft);
+        }
+        .top-bar {
+            height: 64px;
+            padding: 0 24px;
+            gap: 14px;
+            background: rgba(37, 35, 32, 0.66);
+            border-bottom: 1px solid rgba(230, 223, 216, 0.1275);
+            backdrop-filter: blur(22px) saturate(150%);
+            -webkit-backdrop-filter: blur(22px) saturate(150%);
+            box-shadow: 0 1px 0 rgba(37, 35, 32, 0.8);
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        /* pushes the two nav links to the right edge of the top bar */
+        .top-bar-spacer {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+        .mobile-menu-btn {
+            display: flex;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            border: 1px solid rgba(230, 223, 216, 0.153);
+            background: rgba(37, 35, 32, 0.72);
+            color: #a09d96;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all .3s var(--ease-soft);
+        }
+        .mobile-menu-btn:hover {
+            color: var(--accent);
+            background: #fff;
+            border-color: rgba(204, 120, 92, 0.18);
+        }
+        .top-bar-title {
+            font-weight: 700;
+            font-size: .98rem;
+            color: #faf9f5;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+        }
+        .top-bar-link {
+            color: #a09d96;
+            text-decoration: none;
+            font-size: 0.8rem;
+            padding: 7px 14px;
+            border-radius: 10px;
+            transition: all .35s var(--ease-soft);
+            flex-shrink: 0;
+        }
+        .top-bar-link:hover {
+            color: var(--accent);
+            background: rgba(204, 120, 92, 0.055);
+            transform: translateY(-1px);
+        }
+        /* 新增：联盟官网按钮样式，与联系我们一致 */
+        .top-bar-link-alliance {
+            color: #a09d96;
+            text-decoration: none;
+            font-size: 0.8rem;
+            padding: 7px 14px;
+            border-radius: 10px;
+            transition: all .35s var(--ease-soft);
+            flex-shrink: 0;
+        }
+        .top-bar-link-alliance:hover {
+            color: var(--accent);
+            background: rgba(204, 120, 92, 0.055);
+            transform: translateY(-1px);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 34px 28px 42px;
+            scroll-behavior: smooth;
+            overscroll-behavior: contain;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(204, 120, 92, 0.16) transparent;
+            display: flex;
+            justify-content: center;
+        }
+        .chat-messages::-webkit-scrollbar {
+            width: 7px;
+        }
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(204, 120, 92, 0.16);
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            border-radius: 999px;
+        }
+        .content-inner {
+            width: 100%;
+            max-width: 980px;
+        }
+
+        .panel {
+            display: none;
+            animation: panelReveal .62s var(--ease-out-expo);
+        }
+        .panel.active {
+            display: block;
+        }
+        @keyframes panelReveal {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+                filter: blur(3px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+                filter: blur(0);
+            }
+        }
+
+        .card {
+            background: rgba(37, 35, 32, 0.78);
+            border: 1px solid rgba(230, 223, 216, 0.1445);
+            box-shadow: 0 8px 28px rgba(230, 223, 216, 0.0765);
+            backdrop-filter: blur(18px) saturate(135%);
+            -webkit-backdrop-filter: blur(18px) saturate(135%);
+            border-radius: var(--radius);
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 0.75rem;
+            transition: transform .5s var(--ease-soft), box-shadow .5s ease, border-color .4s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(204, 120, 92, 0.18);
+            box-shadow: 0 16px 38px rgba(230, 223, 216, 0.136), 0 5px 18px rgba(204, 120, 92, 0.055);
+        }
+        .card h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 0.6rem;
+            color: #faf9f5;
+        }
+        .card p {
+            color: #a09d96;
+            line-height: 1.65;
+            font-size: 0.88rem;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 2.2rem 0 2.45rem;
+        }
+        .hero-icon {
+            margin-bottom: .8rem;
+            animation: heroFloat 5s ease-in-out infinite;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .hero-icon img {
+            width: 64px;
+            height: 64px;
+            object-fit: contain;
+            border-radius: 12px;
+            box-shadow: 0 9px 18px rgba(204, 120, 92, 0.18);
+            display: block;
+        }
+        @keyframes heroFloat {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-5px);
+            }
+        }
+
+        .hero h1 {
+            font-size: clamp(1.85rem, 4vw, 2.45rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, #263653 0%, #cc785c 70%, #e8a55a 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 0.4rem;
+            letter-spacing: -.045em;
+        }
+        .hero .subtitle {
+            font-size: 0.95rem;
+            color: #a09d96;
+        }
+
+        .announcement {
+            background: linear-gradient(135deg, rgba(204, 120, 92, 0.065), rgba(42, 36, 32, 0.11));
+            border-left: 3px solid var(--accent);
+            border-radius: var(--radius);
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+        .announcement .date {
+            font-size: 0.65rem;
+            color: var(--accent);
+            margin-bottom: 0.4rem;
+            font-family: var(--mono);
+            text-transform: uppercase;
+        }
+        .announcement .title {
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+            font-size: 0.9rem;
+        }
+        .announcement p {
+            color: var(--text2);
+            font-size: 0.82rem;
+        }
+
+        .direction-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+        .direction-item {
+            text-align: center;
+        }
+        .direction-icon {
+            width: 2.8rem;
+            height: 2.8rem;
+            background: linear-gradient(135deg, rgba(204, 120, 92, 0.1), rgba(42, 36, 32, 0.18));
+            border: 1px solid rgba(204, 120, 92, 0.07);
+            border-radius: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.4rem;
+            transition: transform .45s var(--ease-soft), box-shadow .45s ease;
+            overflow: hidden;
+        }
+        .direction-icon img {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            display: block;
+            flex-shrink: 0;
+        }
+        .direction-item:hover .direction-icon {
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: 0 10px 24px rgba(204, 120, 92, 0.11);
+        }
+        .direction-item h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+            color: #faf9f5;
+        }
+        .direction-item p {
+            font-size: 0.75rem;
+            color: var(--text3);
+        }
+
+        .members-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 0.75rem;
+        }
+        .member-card {
+            background: rgba(37, 35, 32, 0.78);
+            border: 1px solid rgba(230, 223, 216, 0.1445);
+            box-shadow: 0 8px 28px rgba(230, 223, 216, 0.0765);
+            border-radius: var(--radius);
+            padding: 0.9rem;
+            text-align: center;
+            transition: transform .5s var(--ease-soft), box-shadow .5s ease, border-color .4s ease;
+        }
+        .member-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(204, 120, 92, 0.18);
+            box-shadow: 0 16px 38px rgba(230, 223, 216, 0.136);
+        }
+        .member-avatar-img {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 0.6rem;
+            background: rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--border);
+            cursor: pointer;
+        }
+        .member-avatar-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            pointer-events: none;
+        }
+        .member-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #faf9f5;
+        }
+        .member-role {
+            font-size: 0.75rem;
+            color: var(--accent2);
+            margin-top: 2px;
+        }
+        .member-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            justify-content: center;
+            margin-top: 5px;
+        }
+        .member-tag {
+            font-size: 0.65rem;
+            padding: 2px 7px;
+            border-radius: 10px;
+            background: rgba(204, 120, 92, 0.12);
+            color: var(--accent);
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 0.75rem;
+        }
+        .gallery-item {
+            background: rgba(37, 35, 32, 0.78);
+            border: 1px solid rgba(230, 223, 216, 0.1445);
+            box-shadow: 0 8px 28px rgba(230, 223, 216, 0.0765);
+            border-radius: var(--radius);
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform .5s var(--ease-soft), box-shadow .5s ease, border-color .4s ease;
+        }
+        .gallery-item:hover {
+            transform: translateY(-5px);
+            border-color: rgba(204, 120, 92, 0.18);
+            box-shadow: 0 16px 38px rgba(230, 223, 216, 0.136);
+        }
+        .gallery-item img {
+            width: 100%;
+            aspect-ratio: 4/3;
+            object-fit: cover;
+            display: block;
+            border-bottom: 1px solid rgba(230, 223, 216, 0.119);
+        }
+        .gallery-caption {
+            padding: 0.6rem 0.8rem;
+            font-size: 0.75rem;
+            color: var(--text2);
+            text-align: center;
+        }
+
+        .event-list {
+            list-style: none;
+        }
+        .event-list li {
+            background: rgba(37, 35, 32, 0.78);
+            border: 1px solid rgba(230, 223, 216, 0.1445);
+            box-shadow: 0 8px 28px rgba(230, 223, 216, 0.0765);
+            backdrop-filter: blur(18px) saturate(135%);
+            margin-bottom: 0.5rem;
+            border-radius: var(--radius);
+            padding: 0.9rem 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            transition: all .5s var(--ease-soft);
+            gap: 0.6rem;
+        }
+        .event-list li:hover {
+            border-color: rgba(204, 120, 92, 0.18);
+            background: rgba(37, 35, 32, 0.94);
+            transform: translateX(4px);
+        }
+        .event-info {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+        .event-date {
+            background: rgba(204, 120, 92, 0.075);
+            padding: 0.25rem 0.7rem;
+            border-radius: 2rem;
+            font-size: 0.7rem;
+            font-family: var(--mono);
+            color: var(--accent);
+        }
+        .event-theme-tag {
+            background: rgba(42, 36, 32, 0.35);
+            padding: 0.25rem 0.7rem;
+            border-radius: 2rem;
+            font-size: 0.65rem;
+            color: #e8a55a;
+        }
+        .signup-badge {
+            background: linear-gradient(135deg, #c64545, #c64545);
+            color: white;
+            padding: 0.25rem 0.7rem;
+            border-radius: 2rem;
+            font-size: 0.65rem;
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: 0 5px 14px rgba(198, 69, 69, 0.16);
+        }
+
+        .shop-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .shop-card {
+            background: rgba(37, 35, 32, 0.78);
+            border: 1px solid rgba(230, 223, 216, 0.1445);
+            box-shadow: 0 8px 28px rgba(230, 223, 216, 0.0765);
+            border-radius: var(--radius);
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform .5s var(--ease-soft), box-shadow .5s ease, border-color .4s ease;
+        }
+        .shop-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(204, 120, 92, 0.18);
+            box-shadow: 0 16px 38px rgba(230, 223, 216, 0.136);
+        }
+        .shop-card img {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            display: block;
+            border-bottom: 1px solid rgba(230, 223, 216, 0.119);
+        }
+        .shop-card-body {
+            padding: 0.9rem;
+        }
+        .shop-card-body .shop-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+            color: #faf9f5;
+        }
+        .shop-card-body .shop-price {
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        .shop-card-body .shop-desc {
+            font-size: 0.75rem;
+            color: #a09d96;
+            line-height: 1.5;
+        }
+
+        .qa-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .qa-card {
+            background: rgba(37, 35, 32, 0.78);
+            border: 1px solid rgba(230, 223, 216, 0.1445);
+            box-shadow: 0 8px 28px rgba(230, 223, 216, 0.0765);
+            border-radius: var(--radius);
+            overflow: hidden;
+            cursor: pointer;
+            display: grid;
+            grid-template-rows: auto 0fr;
+            transition: grid-template-rows .62s var(--ease-soft), transform .5s var(--ease-soft), border-color .4s ease, box-shadow .5s ease;
+        }
+        .qa-card.open {
+            grid-template-rows: auto 1fr;
+            border-color: rgba(204, 120, 92, 0.18);
+            background: rgba(204, 120, 92, 0.025);
+        }
+        .qa-card-header {
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+        .qa-card-header .qa-question {
+            font-weight: 600;
+            font-size: 0.9rem;
+            flex: 1;
+            color: #faf9f5;
+        }
+        .qa-card-header .qa-arrow {
+            font-size: 1rem;
+            color: var(--text3);
+            transition: transform .58s var(--ease-soft), color .3s ease;
+        }
+        .qa-card.open .qa-arrow {
+            transform: rotate(180deg);
+            color: var(--accent);
+        }
+        .qa-card-body {
+            overflow: hidden;
+            opacity: 0;
+            transform: translate3d(0, -7px, 0);
+            transition: opacity .34s ease, transform .58s var(--ease-soft);
+        }
+        .qa-card.open .qa-card-body {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+        }
+        .qa-card-body-inner {
+            padding: 0 1.25rem 1rem;
+            color: #a09d96;
+            font-size: 0.85rem;
+            line-height: 1.7;
+        }
+        .qa-category-tag {
+            font-size: 0.65rem;
+            padding: 0.2rem 0.5rem;
+            background: rgba(204, 120, 92, 0.075);
+            color: var(--accent);
+            border-radius: 0.8rem;
+        }
+
+        /* 加入群聊样式 */
+        .groups-hero {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 22px;
+            margin-bottom: 18px;
+            border: 1px solid rgba(204, 120, 92, 0.12);
+            border-radius: 14px;
+            background: rgba(37, 35, 32, 0.8);
+            box-shadow: 0 4px 16px rgba(230, 223, 216, 0.068);
+            backdrop-filter: blur(14px);
+            transition: transform .3s ease, box-shadow .3s ease;
+        }
+        .groups-hero:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(230, 223, 216, 0.119);
+        }
+        .groups-hero-icon {
+            width: 44px;
+            height: 44px;
+            flex: 0 0 44px;
+            display: grid;
+            place-items: center;
+            border-radius: 10px;
+            color: #cc785c;
+            font-size: 18px;
+            background: rgba(204, 120, 92, 0.08);
+            transition: transform .3s ease, background .3s ease;
+        }
+        .groups-hero:hover .groups-hero-icon {
+            transform: scale(1.05);
+            background: rgba(204, 120, 92, 0.14);
+        }
+        .groups-kicker {
+            font-family: var(--mono);
+            color: #cc785c;
+            font-size: 10px;
+            letter-spacing: .1em;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+        .groups-hero h2 {
+            font-size: 1.4rem;
+            letter-spacing: -.01em;
+            color: #f5f0e8;
+            margin-bottom: 2px;
+            font-weight: 700;
+        }
+        .groups-hero p {
+            color: #a09d96;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .groups-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 14px;
+        }
+        .group-card {
+            background: rgba(37, 35, 32, 0.85);
+            border: 1px solid rgba(230, 223, 216, 0.136);
+            border-radius: 14px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 3px 12px rgba(230, 223, 216, 0.068);
+            transition: transform .4s var(--ease-spring), box-shadow .4s ease, border-color .3s ease;
+            animation: cardEntry .6s var(--ease-spring) both;
+        }
+        .group-card:nth-child(1) {
+            animation-delay: .05s;
+        }
+        .group-card:nth-child(2) {
+            animation-delay: .12s;
+        }
+        .group-card:nth-child(3) {
+            animation-delay: .19s;
+        }
+        @keyframes cardEntry {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .group-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(204, 120, 92, 0.2);
+            box-shadow: 0 10px 24px rgba(230, 223, 216, 0.136), 0 3px 10px rgba(204, 120, 92, 0.05);
+        }
+
+        .group-visual {
+            margin: 8px auto 0;
+            width: 65%;
+            aspect-ratio: 1/1;
+            border-radius: 10px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1f1e1b, #2a2420);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .group-visual img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform .5s var(--ease-spring);
+        }
+        .group-card:hover .group-visual img {
+            transform: scale(1.04);
+        }
+        .group-visual .placeholder {
+            font-size: 36px;
+            color: rgba(204, 120, 92, 0.3);
+        }
+
+        .group-body {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            padding: 10px 12px 12px;
+        }
+        .group-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 6px;
+            margin-bottom: 3px;
+        }
+        .group-title-row h3 {
+            color: #f5f0e8;
+            font-size: 15px;
+            line-height: 1.3;
+            font-weight: 700;
+        }
+        .group-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 3px 6px;
+            border-radius: 999px;
+            color: #a09d96;
+            background: rgba(204, 120, 92, 0.05);
+            font-size: 9px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .group-status i {
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: #cc785c;
+        }
+        .group-body>p {
+            margin: 3px 0 8px;
+            color: #a09d96;
+            font-size: 12px;
+            line-height: 1.5;
+            flex: 1;
+        }
+        .group-number-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(230, 223, 216, 0.102);
+        }
+        .group-number {
+            flex: 1;
+            min-width: 0;
+        }
+        .group-number span {
+            display: block;
+            color: #8e8b82;
+            font-size: 11px;
+            margin-bottom: 1px;
+            letter-spacing: .03em;
+        }
+        .group-number strong {
+            display: block;
+            color: #f0eee6;
+            font: 700 15px/1.2 var(--mono);
+            letter-spacing: -.02em;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .action-icons {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 0 0 auto;
+        }
+        .action-icon-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            color: #8e8b82;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all .25s var(--ease-spring);
+            padding: 0;
+        }
+        .action-icon-btn:hover {
+            color: #cc785c;
+            transform: scale(1.08);
+        }
+        .action-icon-btn.is-copied {
+            color: #cc785c;
+        }
+        .action-icon-btn i {
+            pointer-events: none;
+        }
+
+        .icon-svg {
+            width: 18px;
+            height: 18px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.6;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: all .2s ease;
+        }
+        .icon-svg.check-svg {
+            stroke: #cc785c;
+            stroke-width: 2.2;
+        }
+
+        .groups-tip {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 16px;
+            padding: 7px 12px;
+            border-radius: 8px;
+            color: #a09d96;
+            background: rgba(37, 35, 32, 0.55);
+            border: 1px solid rgba(230, 223, 216, 0.085);
+            font-size: 10px;
+        }
+        .groups-tip i {
+            color: #cc785c;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 1.5rem 0 1rem;
+            color: #8e8b82;
+            font-size: 0.75rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+            border-top: 1px solid rgba(230, 223, 216, 0.119);
+            margin-top: 1.5rem;
+        }
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(37, 35, 32, 0.95);
+            color: #faf9f5;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            z-index: 200;
+            display: none;
+            border: 1px solid rgba(230, 223, 216, 0.153);
+            box-shadow: 0 14px 40px rgba(230, 223, 216, 0.255);
+            backdrop-filter: blur(12px);
+        }
+        .loading-placeholder {
+            padding: 2rem;
+            text-align: center;
+            color: var(--text3);
+        }
+
+        @media (max-width: 900px) {
+            .groups-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                bottom: 0;
+                z-index: 30;
+                transform: translateX(-100%);
+                transition: transform .62s var(--ease-soft), box-shadow .55s ease;
+                width: var(--sidebar-width);
+                background: rgba(37, 35, 32, 0.94);
+                box-shadow: 12px 0 40px rgba(230, 223, 216, 0.204);
+            }
+            .sidebar.mobile-open {
+                transform: translateX(0);
+                box-shadow: 16px 0 40px rgba(230, 223, 216, 0.204);
+            }
+            .sidebar.collapsed {
+                width: var(--sidebar-width);
+            }
+            .sidebar.collapsed .nav-label,
+            .sidebar.collapsed .sidebar-logo,
+            .sidebar.collapsed .sidebar-footer {
+                opacity: 1;
+                pointer-events: auto;
+                transform: none;
+            }
+            .mobile-menu-btn {
+                display: flex;
+            }
+            .top-bar {
+                height: 60px;
+                padding: 0 15px;
+                gap: 8px;
+            }
+            .top-bar-title {
+                font-size: 1.0rem;
+                flex: 1 1 auto;
+                min-width: 0;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .top-bar-link,
+            .top-bar-link-alliance {
+                font-size: 0.8rem;
+                padding: 4px 10px;
+                flex-shrink: 0;
+            }
+            .chat-messages {
+                padding: 24px 15px 34px;
+            }
+            .content-inner {
+                max-width: 100%;
+            }
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+        }
+        @media (max-width: 620px) {
+            .groups-grid {
+                grid-template-columns: 1fr;
+            }
+            .groups-hero {
+                padding: 14px;
+                gap: 10px;
+            }
+            .groups-hero-icon {
+                width: 40px;
+                height: 40px;
+                flex-basis: 40px;
+                border-radius: 8px;
+                font-size: 16px;
+            }
+        }
+        /* 针对极小屏进一步缩小字体 */
+        @media (max-width: 480px) {
+            .top-bar-title {
+                font-size: 0.85rem;
+            }
+            .top-bar-link,
+            .top-bar-link-alliance {
+                font-size: 0.75rem;
+                padding: 4px 8px;
+            }
+            .top-bar {
+                gap: 4px;
+                padding: 0 10px;
+            }
+        }
+    </style>
+    
+    
+    
+    <style>
+        /* Claude typographic voice: serif display + humanist sans body */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--font-display);
+            font-weight: 500;
+            letter-spacing: -0.02em;
+        }
+        /* Claude coral selection + scrollbar polish */
+        ::selection { background: rgba(204, 120, 92, .32); }
+        html { color-scheme: dark; }
+    </style>
+<script>try{document.documentElement.dataset.theme=localStorage.getItem("rsc-theme")||"dark"}catch(e){document.documentElement.dataset.theme="dark"}</script><style>@font-face{font-family:'Anthropic Sans Web Text';src:url('fonts/AnthropicSansWebText.ttf') format('truetype');font-weight:normal;font-style:normal;font-display:swap}
+@font-face{font-family:'Anthropic Serif Web Text';src:url('fonts/AnthropicSerifWebText.ttf') format('truetype');font-weight:normal;font-style:normal;font-display:swap}
+@font-face{font-family:'Anthropic Mono Variable';src:url('fonts/AnthropicMonoVariable.ttf') format('truetype');font-weight:normal;font-style:normal;font-display:swap}
+</style>
+<style id="claude-theme">
+/* ===== Claude-style theme ===== */
+:root{--clay:#d97757;--clay-deep:#c6613f;--kraft:#d4a27f;
+--bg:#faf9f5;--side:#f5f4ee;--card:#fff;--sunk:#f0eee6;--hover:rgba(31,30,29,.055);
+--text:#141413;--text2:#5e5d59;--text3:#87867f;--border:rgba(31,30,29,.13);
+--accent:#b9532f;--accent2:#b9532f;--tint:rgba(217,119,87,.1);--tint-line:rgba(217,119,87,.3);
+--shadow:0 1px 2px rgba(20,20,19,.04),0 6px 24px rgba(20,20,19,.04);
+--shadow-up:0 2px 6px rgba(20,20,19,.05),0 14px 36px rgba(20,20,19,.09);
+--radius:16px;--ease:cubic-bezier(.22,1,.36,1);--grain:.28;
+--font-display:'Anthropic Serif Web Text', Georgia, 'Noto Serif SC', 'Songti SC', 'SimSun', serif;--font:'Anthropic Sans Web Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', 'Source Han Sans SC', sans-serif;color-scheme:light}
+:root[data-theme=dark]{--bg:#262624;--side:#1f1e1d;--card:#30302e;--sunk:#1f1e1d;--hover:rgba(250,249,245,.06);
+--text:#faf9f5;--text2:#c2c0b6;--text3:#97958c;--border:rgba(250,249,245,.12);
+--accent:#e8906f;--accent2:#e8906f;--tint:rgba(217,119,87,.15);--tint-line:rgba(217,119,87,.36);
+--shadow:0 1px 2px rgba(0,0,0,.2),0 6px 24px rgba(0,0,0,.18);
+--shadow-up:0 2px 6px rgba(0,0,0,.25),0 14px 36px rgba(0,0,0,.32);--grain:.14;color-scheme:dark}
+
+body{background:var(--bg);color:var(--text);transition:background-color .35s,color .35s}
+body::before{display:none}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;opacity:var(--grain);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .3 0 0 0 0 .25 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+::selection{background:rgba(217,119,87,.3)}
+:focus-visible{outline:2px solid var(--clay);outline-offset:2px}
+
+/* surfaces: flat paper, hairline border, diffuse shadow */
+.card,.member-card,.gallery-item,.event-list li,.shop-card,.qa-card,.groups-hero,.group-card{
+background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);
+backdrop-filter:none;-webkit-backdrop-filter:none;
+transition:transform .45s var(--ease),box-shadow .45s var(--ease),border-color .3s,background-color .35s,grid-template-rows .6s var(--ease)}
+.card:hover,.groups-hero:hover,.event-list li:hover{transform:none;background:var(--card);border-color:var(--border);box-shadow:var(--shadow)}
+.event-list li:hover{border-color:var(--tint-line)}
+.member-card:hover,.gallery-item:hover,.shop-card:hover,.group-card:hover{transform:translateY(-3px);border-color:var(--tint-line);box-shadow:var(--shadow-up)}
+.qa-card.open{background:var(--card);border-color:var(--tint-line)}
+.gallery-item img,.shop-card img{border-bottom-color:var(--border)}
+
+/* type */
+.top-bar-title,.card h3,.direction-item h4,.member-name,.shop-name,.qa-question,.group-title-row h3,.groups-hero h2,.group-number strong{color:var(--text)}
+.hero .subtitle,.card p,.shop-desc,.qa-card-body-inner,.group-body>p,.groups-hero p,.gallery-caption,.nav-item,.top-bar-link,.top-bar-link-alliance,.mobile-menu-btn{color:var(--text2)}
+.direction-item p,.group-number span,.sidebar-footer,.footer,.loading-placeholder,.qa-arrow,.action-icon-btn{color:var(--text3)}
+.top-bar-title{font-family:var(--font-display);font-weight:500;font-size:1.05rem}
+.card h3{font-size:1.2rem}
+.card p{font-size:.92rem;line-height:1.75}
+.group-title-row h3{font-size:16px}
+.group-number strong{font-family:var(--font);font-variant-numeric:tabular-nums}
+
+/* sidebar + top bar */
+.sidebar{background:var(--side);border-right:1px solid var(--border);box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;
+transition:width .55s var(--ease),transform .55s var(--ease),background-color .35s}
+.sidebar.mobile-open{box-shadow:var(--shadow-up)}
+.sidebar-header,.sidebar-footer,.top-bar,.footer,.group-number-row{border-color:var(--border)}
+.logo-badge{border-radius:8px;box-shadow:none}
+.nav-item:hover{color:var(--text);background:var(--hover);transform:none}
+.nav-item.active{color:var(--text);background:var(--hover);border-color:transparent;box-shadow:none}
+.nav-item.active .nav-icon{color:var(--clay)}
+.nav-item:active{transform:scale(.98)}
+.top-bar{background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none;transition:background-color .35s}
+.top-bar-link:hover,.top-bar-link-alliance:hover,.mobile-menu-btn:hover{color:var(--text);background:var(--hover);transform:none}
+.mobile-menu-btn{background:transparent;border-color:var(--border)}
+.chat-messages,.sidebar-nav{scrollbar-color:var(--border) transparent}
+.chat-messages::-webkit-scrollbar-thumb,.sidebar-nav::-webkit-scrollbar-thumb{background:var(--border);background-clip:padding-box}
+
+.theme-toggle{width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:transparent;color:var(--text2);
+display:grid;place-items:center;cursor:pointer;flex-shrink:0;transition:background-color .25s,color .25s,transform .35s var(--ease)}
+.theme-toggle:hover{background:var(--hover);color:var(--text)}
+.theme-toggle:active{transform:scale(.92)}
+.theme-toggle svg{grid-area:1/1;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;transition:transform .5s var(--ease),opacity .3s}
+.theme-toggle .moon{opacity:0;transform:rotate(-60deg) scale(.6)}
+:root[data-theme=dark] .theme-toggle .sun{opacity:0;transform:rotate(60deg) scale(.6)}
+:root[data-theme=dark] .theme-toggle .moon{opacity:1;transform:none}
+
+/* hero + content */
+.hero{padding:3rem 0 2.6rem}
+.hero-icon{animation:none}
+.hero-icon img{border-radius:18px;box-shadow:var(--shadow)}
+.hero h1{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:var(--text);
+font-weight:500;letter-spacing:-.025em;font-size:clamp(2rem,4.6vw,2.8rem)}
+.hero .subtitle{font-size:1.02rem}
+.announcement{background:var(--tint);border:1px solid var(--tint-line)}
+.announcement .date{font-family:var(--font);text-transform:none;font-size:.8rem;font-weight:600}
+.announcement .title{font-family:var(--font-display);font-size:1.08rem;font-weight:500}
+.announcement p{color:var(--text2)}
+.direction-icon{background:var(--sunk);border-color:var(--border)}
+.direction-icon img{image-rendering:pixelated}
+.direction-item:hover .direction-icon{box-shadow:var(--shadow-up)}
+.member-avatar-img{background:var(--sunk)}
+.member-role{color:var(--accent)}
+.member-tag,.qa-category-tag,.event-date{background:var(--tint);color:var(--accent)}
+.event-date{font-family:var(--font);font-variant-numeric:tabular-nums}
+.event-theme-tag{background:var(--sunk);color:var(--text2)}
+.signup-badge{background:var(--clay-deep);color:#fff;box-shadow:none;transition:background-color .25s,transform .3s var(--ease)}
+.signup-badge:hover{background:#b0502f}
+.signup-badge:active{transform:scale(.95)}
+
+/* groups */
+.groups-kicker{font-family:var(--font);letter-spacing:0;font-size:12px;color:var(--accent)}
+.groups-hero h2{color:var(--text)}
+.groups-hero-icon{background:var(--tint);color:var(--accent)}
+.group-visual{background:var(--sunk)}
+.group-status{background:var(--tint);color:var(--accent)}
+.group-status i{background:var(--clay);animation:breathe 2.6s ease-in-out infinite}
+.action-icon-btn:hover{color:var(--accent);background:var(--hover)}
+.groups-tip{background:transparent;border-color:var(--border);color:var(--text3)}
+.group-card{animation-fill-mode:backwards}
+
+/* toast + loading */
+.toast{background:var(--text);color:var(--bg);border:none;border-radius:12px;box-shadow:var(--shadow-up);backdrop-filter:none;animation:toastIn .4s var(--ease)}
+.loading-placeholder{display:flex;flex-direction:column;align-items:center;gap:.7rem;padding:3rem 1rem;font-size:.9rem}
+.loading-placeholder.is-loading::before{content:'';width:22px;height:22px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg stroke='%23d97757' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;animation:spark 2.2s ease-in-out infinite}
+
+/* motion: one calm rise on panel switch, springy easing, nothing idle */
+.panel{animation:none}
+#about>*,#groups>.groups-hero,#groups>.groups-tip,.loading-placeholder,
+.members-grid>*,.gallery-grid>*,.shop-grid>*,.qa-grid>*,.event-list>li{animation:rise .6s var(--ease) backwards}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes spark{0%,100%{transform:rotate(0) scale(.85);opacity:.55}50%{transform:rotate(90deg) scale(1.1);opacity:1}}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+#about>:nth-child(1){animation-delay:70ms}#about>:nth-child(2){animation-delay:140ms}#about>:nth-child(3){animation-delay:210ms}#about>:nth-child(4){animation-delay:280ms}#about>:nth-child(5){animation-delay:350ms}#about>:nth-child(6){animation-delay:420ms}:is(.members-grid,.gallery-grid,.shop-grid,.qa-grid,.event-list)>:nth-child(1){animation-delay:45ms}:is(.members-grid,.gallery-grid,.shop-grid,.qa-grid,.event-list)>:nth-child(2){animation-delay:90ms}:is(.members-grid,.gallery-grid,.shop-grid,.qa-grid,.event-list)>:nth-child(3){animation-delay:135ms}:is(.members-grid,.gallery-grid,.shop-grid,.qa-grid,.event-list)>:nth-child(4){animation-delay:180ms}:is(.members-grid,.gallery-grid,.shop-grid,.qa-grid,.event-list)>:nth-child(5){animation-delay:225ms}:is(.members-grid,.gallery-grid,.shop-grid,.qa-grid,.event-list)>:nth-child(6){animation-delay:270ms}:is(.members-grid,.gallery-grid,.shop-grid,.qa-grid,.event-list)>:nth-child(7){animation-delay:315ms}:is(.members-grid,.gallery-grid,.shop-grid,.qa-grid,.event-list)>:nth-child(8){animation-delay:360ms}:is(.members-grid,.gallery-grid,.shop-grid,.qa-grid,.event-list)>:nth-child(9){animation-delay:405ms}:is(.members-grid,.gallery-grid,.shop-grid,.qa-grid,.event-list)>:nth-child(10){animation-delay:450ms}:is(.members-grid,.gallery-grid,.shop-grid,.qa-grid,.event-list)>:nth-child(11){animation-delay:495ms}:is(.members-grid,.gallery-grid,.shop-grid,.qa-grid,.event-list)>:nth-child(12){animation-delay:540ms}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <span class="logo-badge"><img src="https://p.qlogo.cn/gh/498305465/498305465/640" alt="红石社"></span>
+                <span>RSC</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav" id="sidebarNav">
+            <div class="nav-item active" data-panel="about"><span class="nav-icon"><svg class="nav-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 10.5v5"></path><path d="M12 7.5h.01"></path></svg></span><span class="nav-label">关于我们</span></div>
+            <div class="nav-item" data-panel="members"><span class="nav-icon"><svg class="nav-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"></circle><path d="M3.5 19c.7-3.2 2.5-5 5.5-5s4.8 1.8 5.5 5"></path><path d="M16 5.5a3 3 0 0 1 0 5.8"></path><path d="M17 14.2c1.9.7 3.1 2.2 3.5 4.8"></path></svg></span><span class="nav-label">成员风采</span></div>
+            <div class="nav-item" data-panel="gallery"><span class="nav-icon"><svg class="nav-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"></rect><circle cx="8.5" cy="9" r="1.5"></circle><path d="m5.5 17 4.5-4.5 3.2 3.2 2.2-2.2 3.1 3.1"></path></svg></span><span class="nav-label">游戏掠影</span></div>
+            <div class="nav-item" data-panel="events"><span class="nav-icon"><svg class="nav-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"></rect><path d="M7.5 3.5v4"></path><path d="M16.5 3.5v4"></path><path d="M3.5 10h17"></path><path d="M8 14h3"></path><path d="M13 14h3"></path><path d="M8 17h3"></path></svg></span><span class="nav-label">社团活动</span></div>
+            <div class="nav-item" data-panel="shop"><span class="nav-icon"><svg class="nav-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h16l-1.2 10.5H5.2L4 9.5Z"></path><path d="M7 9.5 8.8 5h6.4L17 9.5"></path><path d="M9 13.5v3"></path><path d="M15 13.5v3"></path></svg></span><span class="nav-label">周边商城</span></div>
+            <div class="nav-item" data-panel="qa"><span class="nav-icon"><svg class="nav-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-4.5 3v-3H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"></path><path d="M8 10h8"></path><path d="M8 13h5"></path></svg></span><span class="nav-label">常见问答</span></div>
+            <div class="nav-item" data-panel="groups">
+                <span class="nav-icon">
+                    <svg class="nav-svg" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M16 21v-1.7a4.3 4.3 0 0 0-4.3-4.3H6.3A4.3 4.3 0 0 0 2 19.3V21"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M19 8v6"></path><path d="M22 11h-6"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">加入群聊</span>
+            </div>
+        </nav>
+        <div class="sidebar-footer">© 2026 RSC</div>
+    </aside>
+
+    <div class="main-content">
+        <div class="top-bar">
+            <button class="mobile-menu-btn" id="mobileMenuBtn"><i class="fas fa-bars"></i></button>
+            <span class="top-bar-spacer"></span>
+            <button class="theme-toggle" id="themeToggle" type="button" aria-label="切换明暗主题"><svg class="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"></path></svg><svg class="moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"></path></svg></button>
+            <a href="https://mxha.barrierslink.cn" target="_blank" class="top-bar-link-alliance">联盟官网</a>
+            <a href="mailto:rsc@factorization.top?subject=RSC%20%E7%A4%BE%E5%9B%A2%E5%92%A8%E8%AF%A2&body=%E4%BD%A0%E5%A5%BD%EF%BC%8C%E6%88%91%E6%98%AF%E3%80%82%0A%0A" class="top-bar-link">联系我们</a>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="content-inner">
+
+                <!-- 关于我们（默认激活） -->
+                <div class="panel active" id="about">
+                    <div class="hero">
+                        <div class="hero-icon"><img src="https://p.qlogo.cn/gh/498305465/498305465/640" alt="红石社"></div>
+                        <h1>Redstone Club</h1>
+                    </div>
+                    <div class="announcement"><div class="date"><i class="far fa-bell"></i> 火热招新中！</div><div class="title" id="announcementTitle"></div><p>红石社欢迎所有对 Minecraft 红石感兴趣的同学加入！</p></div>
+                    <div class="card"><h3>社团简介</h3><p>厦门一中红石社（RSC）成立于2025年9月，是所在校首个以 Minecraft 核心的社团。我们致力于研究红石电路原理、设计自动化装置、开发红石小游戏，并为所有 MC 爱好者提供一个交流学习的平台。</p></div>
+                    <div class="card"><h3>社团宗旨</h3><p>探索红石奥秘，培养逻辑思维，激发创造潜能。在游戏中学习，在实践中成长。</p></div>
+                    <div class="card"><h3>我们的方向</h3><div class="direction-grid">
+                        <div class="direction-item">
+                            <div class="direction-icon"><img src="https://zh.minecraft.wiki/images/Bow_JE2_BE1.png?5102d" alt="小游戏"></div>
+                            <h4>小游戏</h4>
+                            <p>拥有数十种小游戏</p>
+                        </div>
+                        <div class="direction-item">
+                            <div class="direction-icon"><img src="https://zh.minecraft.wiki/images/Oak_Planks_JE9_BE3.png?2a459" alt="建筑合作"></div>
+                            <h4>建筑合作</h4>
+                            <p>跨社团大型建筑</p>
+                        </div>
+                        <div class="direction-item">
+                            <div class="direction-icon"><img src="https://zh.minecraft.wiki/images/Invicon_Redstone.png?6dae4" alt="生电生存"></div>
+                            <h4>生电生存</h4>
+                            <p>探索未知世界</p>
+                        </div>
+                        <div class="direction-item">
+                            <div class="direction-icon"><img src="https://zh.minecraft.wiki/images/thumb/Red_Bed_%28N%29_JE4.png/300px-Red_Bed_%28N%29_JE4.png?553e8" alt="起床战争"></div>
+                            <h4>起床战争</h4>
+                            <p>4v4多地图起床</p>
+                        </div>
+                    </div></div>
+                </div>
+                <!-- /about -->
+
+                <!-- 成员风采 -->
+                <div class="panel" id="members"><div id="membersContainer"><div class="loading-placeholder is-loading">加载成员中...</div></div></div>
+
+                <!-- 游戏掠影 -->
+                <div class="panel" id="gallery"><div class="gallery-grid" id="galleryGrid"><div class="loading-placeholder is-loading">加载掠影中...</div></div></div>
+
+                <!-- 社团活动 -->
+                <div class="panel" id="events"><ul class="event-list" id="eventList"><div class="loading-placeholder is-loading">加载活动中...</div></ul><div class="card" id="joinCard" style="margin-top:0.75rem;"></div></div>
+
+                <!-- 周边商城 -->
+                <div class="panel" id="shop"><div class="shop-grid" id="shopGrid"><div class="loading-placeholder is-loading">加载商品中...</div></div></div>
+
+                <!-- 常见问答 -->
+                <div class="panel" id="qa"><div class="qa-grid" id="qaGrid"><div class="loading-placeholder is-loading">加载问答中...</div></div></div>
+
+                <!-- 加入群聊 -->
+                <div class="panel" id="groups">
+                    <div class="groups-hero">
+                        <div class="groups-hero-icon">
+                            <svg class="icon-svg" viewBox="0 0 24 24" style="width:18px;height:18px;">
+                                <path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.5 0-2.9-.4-4.1-1L3 21l1.5-4.5A8.5 8.5 0 1 1 21 11.5Z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="groups-kicker">RSC COMMUNITY</div>
+                            <h2>加入群聊</h2>
+                            <p>扫码或复制群号即可加入对应社群。</p>
+                        </div>
+                    </div>
+
+                    <div class="groups-grid">
+                        <article class="group-card">
+                            <div class="group-visual">
+                                <i class="fas fa-qrcode placeholder" style="display:none;"></i>
+                                <img src="images/redstone/benbu.jpg" alt="本部社团纳新群二维码" loading="eager" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            </div>
+                            <div class="group-body">
+                                <div class="group-title-row">
+                                    <h3>本部社团纳新群</h3>
+                                    <span class="group-status"><i></i> 招新中</span>
+                                </div>
+                                <p>红石社本部社团纳新交流，欢迎新成员加入。</p>
+                                <div class="group-number-row">
+                                    <div class="group-number">
+                                        <span>QQ群号</span>
+                                        <strong>1056077048</strong>
+                                    </div>
+                                    <div class="action-icons">
+                                        <button class="action-icon-btn copy-btn" type="button" data-copy="1056077048" aria-label="复制群号">
+                                            <svg class="icon-svg copy-svg" viewBox="0 0 24 24">
+                                                <rect x="8" y="8" width="12" height="12" rx="2.5"></rect>
+                                                <path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"></path>
+                                            </svg>
+                                        </button>
+                                        <button class="action-icon-btn download-btn" type="button" data-download="images/redstone/benbu.jpg" data-filename="本部社团纳新群二维码.jpg" aria-label="下载二维码">
+                                            <svg class="icon-svg download-svg" viewBox="0 0 24 24">
+                                                <path d="M12 3v12"></path>
+                                                <path d="m7 10 5 5 5-5"></path>
+                                                <path d="M4 21h16"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="group-card">
+                            <div class="group-visual">
+                                <i class="fas fa-qrcode placeholder" style="display:none;"></i>
+                                <img src="images/redstone/haicang.jpg" alt="一海 MC 社群二维码" loading="eager" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            </div>
+                            <div class="group-body">
+                                <div class="group-title-row">
+                                    <h3>一海 MC 社群</h3>
+                                    <span class="group-status"><i></i> 活跃</span>
+                                </div>
+                                <p>Minecraft 玩家交流社区，一起游玩、分享与合作。</p>
+                                <div class="group-number-row">
+                                    <div class="group-number">
+                                        <span>QQ群号</span>
+                                        <strong>1083121647</strong>
+                                    </div>
+                                    <div class="action-icons">
+                                        <button class="action-icon-btn copy-btn" type="button" data-copy="1083121647" aria-label="复制群号">
+                                            <svg class="icon-svg copy-svg" viewBox="0 0 24 24">
+                                                <rect x="8" y="8" width="12" height="12" rx="2.5"></rect>
+                                                <path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"></path>
+                                            </svg>
+                                        </button>
+                                        <button class="action-icon-btn download-btn" type="button" data-download="images/redstone/haicang.jpg" data-filename="一海MC社群二维码.jpg" aria-label="下载二维码">
+                                            <svg class="icon-svg download-svg" viewBox="0 0 24 24">
+                                                <path d="M12 3v12"></path>
+                                                <path d="m7 10 5 5 5-5"></path>
+                                                <path d="M4 21h16"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+
+                        <article class="group-card">
+                            <div class="group-visual">
+                                <i class="fas fa-qrcode placeholder" style="display:none;"></i>
+                                <img src="images/redstone/lianmeng.jpg" alt="联盟大群二维码" loading="eager" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            </div>
+                            <div class="group-body">
+                                <div class="group-title-row">
+                                    <h3>联盟大群</h3>
+                                    <span class="group-status"><i></i> 联盟</span>
+                                </div>
+                                <p>联盟成员综合交流大群，连接更多 Minecraft 社群。</p>
+                                <div class="group-number-row">
+                                    <div class="group-number">
+                                        <span>QQ群号</span>
+                                        <strong>1076713731</strong>
+                                    </div>
+                                    <div class="action-icons">
+                                        <button class="action-icon-btn copy-btn" type="button" data-copy="1076713731" aria-label="复制群号">
+                                            <svg class="icon-svg copy-svg" viewBox="0 0 24 24">
+                                                <rect x="8" y="8" width="12" height="12" rx="2.5"></rect>
+                                                <path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"></path>
+                                            </svg>
+                                        </button>
+                                        <button class="action-icon-btn download-btn" type="button" data-download="images/redstone/lianmeng.jpg" data-filename="联盟大群二维码.jpg" aria-label="下载二维码">
+                                            <svg class="icon-svg download-svg" viewBox="0 0 24 24">
+                                                <path d="M12 3v12"></path>
+                                                <path d="m7 10 5 5 5-5"></path>
+                                                <path d="M4 21h16"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div class="groups-tip">
+                        <svg class="icon-svg" viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;stroke-width:1.6;fill:none;stroke-linecap:round;stroke-linejoin:round;">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 16v-4"></path>
+                            <path d="M12 8h.01"></path>
+                        </svg>
+                        <span>二维码可直接扫码加入；复制群号后可在 QQ 中搜索加入。</span>
+                    </div>
+                </div>
+
+                <div class="footer"><span> 2026 红石社  RSC</span> <span></span> <a href="mailto:rsc@factorization.top">rsc@factorization.top</a> <span></span> <a href="/q&a">我要提问</a></div>
+
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        (function() {
+            var SUPABASE_URL = 'https://pdbfinlvocsggkuslkqv.supabase.co';
+            var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkYmZpbmx2b2NzZ2drdXNsa3F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3Mzg0NzcsImV4cCI6MjA5MDMxNDQ3N30.q8Dpw_NjNDHEFMipdBEzzpE73yZcg_xuc25yslQFCu4';
+            var supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+            var sidebar = document.getElementById('sidebar');
+            var sidebarNav = document.getElementById('sidebarNav');
+            var sidebarOverlay = document.getElementById('sidebarOverlay');
+            var mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            var chatMessages = document.getElementById('chatMessages');
+            var mainContent = document.querySelector('.main-content');
+
+            function isMobile() { return window.innerWidth <= 768; }
+
+            function playSidebarNavAnimation() {
+                var items = sidebarNav.querySelectorAll('.nav-item');
+                items.forEach(function(item) {
+                    item.classList.remove('slide-in');
+                    item.style.animationDelay = '';
+                });
+                void sidebarNav.offsetWidth;
+                items.forEach(function(item, index) {
+                    item.style.animationDelay = (index * 0.08) + 's';
+                    item.classList.add('slide-in');
+                });
+            }
+
+            function openSidebar() {
+                if (isMobile()) {
+                    sidebar.classList.add('mobile-open');
+                    sidebarOverlay.classList.add('active');
+                    playSidebarNavAnimation();
+                } else {
+                    sidebar.classList.remove('collapsed');
+                    playSidebarNavAnimation();
+                }
+            }
+
+            function closeSidebar() {
+                if (isMobile()) {
+                    sidebar.classList.remove('mobile-open');
+                    sidebarOverlay.classList.remove('active');
+                } else {
+                    sidebar.classList.add('collapsed');
+                }
+            }
+
+            if (!isMobile() && !sidebar.classList.contains('collapsed')) {
+                playSidebarNavAnimation();
+            }
+
+            mobileMenuBtn.addEventListener('click', function(e) { e.stopPropagation();
+                if (!isMobile() && !sidebar.classList.contains('collapsed')) { closeSidebar(); }
+                else { openSidebar(); } });
+            if (mainContent) {
+                mainContent.addEventListener('click', function(e) {
+                    if (isMobile() || sidebar.classList.contains('collapsed')) return;
+                    if (e.target.closest(
+                            'a,button,input,textarea,select,.card,.gallery-item,.shop-item,.qa-card,.event-item,.panel,.top-bar-link,.top-bar-link-alliance,.group-card,.copy-icon-btn,.download-btn'
+                            )) return;
+                    closeSidebar();
+                });
+            }
+            sidebarOverlay.addEventListener('click', closeSidebar);
+            sidebarNav.addEventListener('click', function(e) {
+                var item = e.target.closest('.nav-item');
+                if (!item) return;
+                var panelId = item.getAttribute('data-panel');
+                if (!panelId) return;
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                var target = document.getElementById(panelId);
+                if (target) target.classList.add('active');
+                sidebarNav.querySelectorAll('.nav-item').forEach(ni => ni.classList.remove('active'));
+                item.classList.add('active');
+                chatMessages.scrollTop = 0;
+                if (isMobile()) closeSidebar();
+            });
+
+            function showToast(msg) {
+                var t = document.getElementById('toast');
+                t.textContent = msg;
+                t.style.display = 'block';
+                clearTimeout(t._timer);
+                t._timer = setTimeout(function() { t.style.display = 'none'; }, 2000);
+            }
+
+            function fallbackCopy(text) {
+                var ta = document.createElement('textarea');
+                ta.value = text;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                var ok = false;
+                try { ok = document.execCommand('copy'); } catch (e) {}
+                document.body.removeChild(ta);
+                return ok;
+            }
+
+            function downloadImage(url, filename) {
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+
+            document.addEventListener('click', async function(e) {
+                var copyBtn = e.target.closest('.copy-btn');
+                if (copyBtn) {
+                    e.preventDefault();
+                    var text = copyBtn.getAttribute('data-copy');
+                    var copied = false;
+                    try {
+                        if (navigator.clipboard && window.isSecureContext) {
+                            await navigator.clipboard.writeText(text);
+                            copied = true;
+                        }
+                    } catch (err) {}
+                    if (!copied) copied = fallbackCopy(text);
+                    if (copied) {
+                        copyBtn.classList.add('is-copied');
+                        var svg = copyBtn.querySelector('.copy-svg');
+                        if (svg) {
+                            svg.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>';
+                            svg.setAttribute('stroke', '#cc785c');
+                            svg.setAttribute('stroke-width', '2.2');
+                        }
+                        setTimeout(function() {
+                            copyBtn.classList.remove('is-copied');
+                            if (svg) {
+                                svg.innerHTML =
+                                    '<rect x="8" y="8" width="12" height="12" rx="2.5"></rect><path d="M16 8V6.5A2.5 2.5 0 0 0 13.5 4h-7A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H8"></path>';
+                                svg.setAttribute('stroke', 'currentColor');
+                                svg.setAttribute('stroke-width', '1.6');
+                            }
+                        }, 2000);
+                    }
+                    return;
+                }
+
+                var downloadBtn = e.target.closest('.download-btn');
+                if (downloadBtn) {
+                    e.preventDefault();
+                    var url = downloadBtn.getAttribute('data-download');
+                    var filename = downloadBtn.getAttribute('data-filename') || '二维码.jpg';
+                    downloadImage(url, filename);
+                    showToast('二维码已开始下载');
+                }
+            });
+
+            // 数据加载函数
+            async function loadSettings() {
+                try {
+                    var res = await supabase.from('club_settings').select('*');
+                    if (res.error || !res.data || !res.data.length) return;
+                    var s = {};
+                    res.data.forEach(function(i) { s[i.key] = i.value; });
+                    var el = document.getElementById('announcementTitle');
+                    if (el && s.announcement && s.announcement.trim()) el.textContent = s.announcement;
+                    var jc = document.getElementById('joinCard');
+                    if (jc) {
+                        var qq = s.qq_group || '1056077048';
+                        var loc = s.location || '电子阅览室  每周三下午社团课';
+                        jc.innerHTML = '<h3>加入我们</h3><p>QQ群：<strong style="color: var(--accent);">' + qq +
+                            '</strong></p><p>活动地点：' + loc + '</p>';
+                    }
+                } catch (e) {}
+            }
+
+            async function loadMembers() {
+                var container = document.getElementById('membersContainer');
+                if (!container) return;
+                try {
+                    var res = await supabase.from('club_members').select('*').order('generation', { ascending: false })
+                        .order('sort_order');
+                    if (res.error) throw res.error;
+                    container.innerHTML = '';
+                    if (!res.data || !res.data.length) { container.innerHTML =
+                        '<div class="loading-placeholder">暂无成员数据</div>'; return; }
+                    var grouped = {};
+                    res.data.forEach(function(m) { var gen = m.generation || '未分类'; if (!grouped[gen]) grouped[gen] = [];
+                        grouped[gen].push(m); });
+                    var sortedGens = Object.keys(grouped).sort().reverse();
+                    sortedGens.forEach(function(gen) {
+                        var section = document.createElement('div');
+                        section.className = 'generation-section';
+                        section.innerHTML =
+                            '<div class="generation-title" style="font-size:1.1rem;font-weight:700;color:var(--accent2);margin-bottom:.6rem;padding-left:.5rem;border-left:3px solid var(--accent);">' +
+                            gen + '</div>';
+                        var grid = document.createElement('div');
+                        grid.className = 'members-grid';
+                        grouped[gen].forEach(function(m, index) {
+                            var card = document.createElement('div');
+                            card.className = 'member-card';
+                            var skinUrl = m.skin_url || 'https://picsum.photos/id/20/200/200';
+                            var tags = (m.tags && Array.isArray(m.tags)) ? m.tags : (typeof m.tags ===
+                                'string' ? JSON.parse(m.tags || '[]') : []);
+                            var tagsHtml = tags.length ? '<div class="member-tags">' + tags.map(function(
+                                t) { return '<span class="member-tag">' + t + '</span>'; }).join(
+                                '') + '</div>' : '';
+
+                            var isFirstGlobal = (gen === sortedGens[0] && index === 0);
+
+                            var avatarDiv = document.createElement('div');
+                            avatarDiv.className = 'member-avatar-img';
+                            var img = document.createElement('img');
+                            img.src = skinUrl;
+                            img.alt = m.name || '';
+                            img.loading = 'lazy';
+                            img.onerror = function() { this.src = 'https://picsum.photos/id/20/200/200'; };
+                            avatarDiv.appendChild(img);
+
+                            if (isFirstGlobal) {
+                                avatarDiv.style.cursor = 'pointer';
+                                avatarDiv.addEventListener('click', function(e) {
+                                    window.location.href = 'https://factorization.top';
+                                });
+                            }
+
+                            var nameDiv = document.createElement('div');
+                            nameDiv.className = 'member-name';
+                            nameDiv.textContent = m.name || '未命名';
+
+                            var roleDiv = document.createElement('div');
+                            roleDiv.className = 'member-role';
+                            roleDiv.textContent = m.role || '';
+
+                            card.appendChild(avatarDiv);
+                            card.appendChild(nameDiv);
+                            card.appendChild(roleDiv);
+                            if (tagsHtml) {
+                                var tagsContainer = document.createElement('div');
+                                tagsContainer.className = 'member-tags';
+                                tagsContainer.innerHTML = tagsHtml;
+                                card.appendChild(tagsContainer);
+                            }
+
+                            grid.appendChild(card);
+                        });
+                        section.appendChild(grid);
+                        container.appendChild(section);
+                    });
+                } catch (e) { container.innerHTML = '<div class="loading-placeholder">成员加载失败</div>'; }
+            }
+
+            async function loadGallery() {
+                var grid = document.getElementById('galleryGrid');
+                if (!grid) return;
+                try {
+                    var res = await supabase.from('club_gallery').select('*').order('sort_order');
+                    if (res.error) throw res.error;
+                    grid.innerHTML = '';
+                    if (!res.data || !res.data.length) { grid.innerHTML = '<div class="loading-placeholder">暂无掠影</div>';
+                        return; }
+                    res.data.forEach(function(item) {
+                        var card = document.createElement('div');
+                        card.className = 'gallery-item';
+                        card.setAttribute('data-src', item.image_url || '');
+                        card.setAttribute('data-caption', item.description || '');
+                        card.innerHTML = '<img src="' + (item.image_url || '') + '" alt="' + (item
+                            .description || '') + '" onerror="this.style.display=\'none\'"><div class="gallery-caption">' +
+                            (item.description || '') + '</div>';
+                        grid.appendChild(card);
+                    });
+                } catch (e) { grid.innerHTML = '<div class="loading-placeholder">掠影加载失败</div>'; }
+            }
+
+            async function loadActivities() {
+                var list = document.getElementById('eventList');
+                if (!list) return;
+                try {
+                    var res = await supabase.from('club_activities').select('*').order('sort_order');
+                    if (res.error) throw res.error;
+                    list.innerHTML = '';
+                    if (!res.data || !res.data.length) { list.innerHTML = '<div class="loading-placeholder">暂无活动数据</div>';
+                        return; }
+                    res.data.forEach(function(act) {
+                        var li = document.createElement('li');
+                        var title = act.title || '未命名活动',
+                            desc = act.description || '',
+                            date = act.activity_time || act.date || '',
+                            link = act.link || '',
+                            theme = act.theme || '';
+                        if (link) {
+                            li.innerHTML = '<div class="event-info"><strong>' + title + '</strong>' + (theme ?
+                                '<span class="event-theme-tag">' + theme + '</span>' : '') + (desc ?
+                                '<span>- ' + desc + '</span>' : '') + '<a href="' + link +
+                                '" class="signup-badge" target="_blank">报名</a></div><span class="event-date">' +
+                                date + '</span>';
+                            li.addEventListener('click', function(e) { if (e.target.tagName !== 'A') window
+                                    .location.href = link; });
+                        } else {
+                            li.innerHTML = '<div class="event-info"><strong>' + title + '</strong>' + (theme ?
+                                '<span class="event-theme-tag">' + theme + '</span>' : '') + (desc ?
+                                '<span>- ' + desc + '</span>' : '') + '</div><span class="event-date">' +
+                                date + '</span>';
+                        }
+                        list.appendChild(li);
+                    });
+                } catch (e) { list.innerHTML = '<div class="loading-placeholder">活动加载失败</div>'; }
+            }
+
+            async function loadShop() {
+                var grid = document.getElementById('shopGrid');
+                if (!grid) return;
+                try {
+                    var res = await supabase.from('shop_items').select('*').eq('visible', true).order('sort_order');
+                    if (res.error) throw res.error;
+                    grid.innerHTML = '';
+                    if (!res.data || !res.data.length) { grid.innerHTML = '<div class="loading-placeholder">暂无商品</div>';
+                        return; }
+                    res.data.forEach(function(item) {
+                        var card = document.createElement('div');
+                        card.className = 'shop-card';
+                        card.innerHTML = '<img src="' + (item.image_url || 'https://picsum.photos/id/30/400/400') +
+                            '" alt="' + (item.name || '') + '" loading="lazy"><div class="shop-card-body"><div class="shop-name">' +
+                            (item.name || '') + '</div><div class="shop-price">' + (item.price ? '¥' + item
+                                .price : '') + '</div><div class="shop-desc">' + (item.description || '') +
+                            '</div></div>';
+                        card.addEventListener('click', function() { openShopModal(item); });
+                        grid.appendChild(card);
+                    });
+                } catch (e) { grid.innerHTML = '<div class="loading-placeholder">商品加载失败</div>'; }
+            }
+
+            function openShopModal(item) {
+                var modal = document.getElementById('shopModalOverlay');
+                var options = [];
+                try { if (item.options) options = JSON.parse(item.options); } catch (e) {}
+                var optionsHtml = '';
+                if (options.length) {
+                    optionsHtml = '<label>种类</label><select id="orderOptions">';
+                    options.forEach(function(o) { optionsHtml += '<option value="' + o + '">' + o + '</option>'; });
+                    optionsHtml += '</select>';
+                }
+                var maxQty = item.max_quantity || 99;
+                modal.innerHTML = '<div class="shop-modal"><button class="close-modal">&times;</button><img src="' + (
+                    item.image_url || 'https://picsum.photos/id/30/400/400') + '" alt="' + item.name +
+                    '"><h3>' + item.name + '</h3><div class="price">' + (item.price ? '¥' + item.price : '') +
+                    '</div><div class="desc">' + (item.description || '') +
+                    '</div><label>数量 (最多' + maxQty +
+                    ')</label><input type="number" id="orderQty" value="1" min="1" max="' + maxQty +
+                    '">' + optionsHtml +
+                    '<label>联系方式 (QQ/微信/邮箱)</label><input type="text" id="orderContact" placeholder="请输入联系方式"><button class="submit-order" id="submitOrderBtn">提交订单</button></div>';
+                modal.classList.add('active');
+                modal.querySelector('.close-modal').onclick = function() { modal.classList.remove('active'); };
+                modal.querySelector('#submitOrderBtn').onclick = async function() {
+                    var qty = parseInt(modal.querySelector('#orderQty').value) || 1;
+                    if (qty > maxQty) { showToast('超出最大购买数量'); return; }
+                    var contact = modal.querySelector('#orderContact').value.trim();
+                    if (!contact) { showToast('请填写联系方式'); return; }
+                    var selectedOption = modal.querySelector('#orderOptions') ? modal.querySelector('#orderOptions')
+                        .value : '';
+                    var { error } = await supabase.from('club_orders').insert({ item_id: item.id,
+                        item_name: item.name, user_contact: contact, quantity: qty,
+                        options_selected: selectedOption });
+                    if (error) { showToast('下单失败'); return; }
+                    showToast('订单已提交！');
+                    modal.classList.remove('active');
+                };
+            }
+
+            var shopModalOverlay = document.getElementById('shopModalOverlay');
+            if (shopModalOverlay) {
+                shopModalOverlay.addEventListener('click', function(e) {
+                    if (e.target === this) this.classList.remove('active');
+                });
+            }
+
+            async function loadQA() {
+                var grid = document.getElementById('qaGrid');
+                if (!grid) return;
+                try {
+                    var res = await supabase.from('club_qa').select('*').eq('approved', true).order('sort_order');
+                    if (res.error) throw res.error;
+                    grid.innerHTML = '';
+                    if (!res.data || !res.data.length) { grid.innerHTML = '<div class="loading-placeholder">暂无问答</div>';
+                        return; }
+                    res.data.forEach(function(item) {
+                        var card = document.createElement('div');
+                        card.className = 'qa-card';
+                        card.innerHTML = '<div class="qa-card-header"><span class="qa-question">' + (item
+                            .question || '') + '</span>' + (item.category ?
+                            '<span class="qa-category-tag">' + item.category + '</span>' : '') +
+                            '<span class="qa-arrow"><i class="fas fa-chevron-down"></i></span></div><div class="qa-card-body"><div class="qa-card-body-inner">' +
+                            (item.answer || '').replace(/\n/g, '<br>') + '</div></div>';
+                        card.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            var wasOpen = card.classList.contains('open');
+                            Array.prototype.forEach.call(grid.querySelectorAll('.qa-card.open'),
+                            function(other) {
+                                if (other !== card) other.classList.remove('open');
+                            });
+                            card.classList.toggle('open', !wasOpen);
+                        });
+                        grid.appendChild(card);
+                    });
+                } catch (e) { grid.innerHTML = '<div class="loading-placeholder">问答加载失败</div>'; }
+            }
+
+            function init() {
+                loadSettings();
+                loadMembers();
+                loadGallery();
+                loadActivities();
+                loadShop();
+                loadQA();
+            }
+
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+            else init();
+        })();
+    </script>
+<script>
+(function(){
+  var r=document.documentElement,b=document.getElementById('themeToggle');
+  if(b)b.addEventListener('click',function(){var t=r.dataset.theme==='dark'?'light':'dark';r.dataset.theme=t;try{localStorage.setItem('rsc-theme',t)}catch(e){}});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.tabIndex=0;n.setAttribute('role','button');
+    n.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();n.click()}})});
+})();
+</script>
+</body>
+</html>
